@@ -1,89 +1,148 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><title>Workspace</title>
-<link rel="stylesheet" th:href="@{/css/style.css}"></head>
+<head>
+    <meta charset="UTF-8">
+    <title>Workspace</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+        .table-box {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: 0.2s;
+        }
+        .free { background: #2ecc71; }
+        .busy { background: #e74c3c; }
+        .table-box:hover { transform: scale(1.05); }
+
+        .product-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+
 <body>
-  <header class="topbar">
+
+<header class="topbar">
     <h1>Espacio de trabajo - Trabajador</h1>
     <nav><a th:href="@{/logout}">Salir</a></nav>
-  </header>
+</header>
 
-  <section class="container two-col">
+<section class="container two-col">
+
+    <!-- ------------------- LISTADO DE MESAS --------------------- -->
     <div class="card">
-      <h3>Mesas</h3>
-      <ul>
-        <li th:each="t : ${tables}">
-          <strong th:text="${t.name}">Mesa</strong>
-          <span th:text="${t.occupied ? ' (Ocupada)' : ''}"></span>
-        </li>
-      </ul>
-    </div>
+        <h3>Mesas</h3>
 
-    <div class="card">
-      <h3>Crear orden</h3>
-<form th:action="@{/worker/order/create}" method="post" id="orderForm">
-    <label>Tabla</label>
-    <select name="tableId" required>
-        <option th:each="t: ${tables}" th:value="${t.id}" th:text="${t.name}"></option>
-    </select>
-
-    <div>
-        <label>Productos</label>
-        <div th:each="p,iterStat : ${products}" class="product-row">
-            <input type="checkbox"
-                   th:id="${'prod-'+p.id}"
-                   th:name="productIds"
-                   th:value="${p.id}"
-                   class="prod-check"/>
-
-            <label th:for="${'prod-'+p.id}" 
-                   th:text="${p.name + ' - $' + p.price}"></label>
-
-            <input type="number" 
-                   name="quantities"
-                   min="1" 
-                   value="1"
-                   class="qty-input"
-                   disabled />
-            
-            <!-- precio oculto para JS -->
-            <span class="price" th:text="${p.price}" style="display:none;"></span>
+        <div class="tables-grid">
+            <div th:each="t : ${tables}"
+                 th:class="'table-box ' + (${t.occupied} ? 'busy' : 'free')"
+                 th:data-id="${t.id}"
+                 th:data-name="${t.name}"
+                 onclick="selectTable(this)">
+                <span th:text="${t.name}"></span>
+            </div>
         </div>
     </div>
 
-    <h3>Total: $<span id="liveTotal">0</span></h3>
+    <!-- ------------------- PANEL CREAR ORDEN ------------------- -->
+    <div class="card">
 
-    <button class="btn" type="submit">Crear factura</button>
-</form>
+        <h3>Crear orden</h3>
+
+        <form th:action="@{/worker/order/create}" method="post" id="orderForm">
+
+            <input type="hidden" name="tableId" id="tableId">
+
+            <h4>Mesa seleccionada: <span id="tableName">Ninguna</span></h4>
+
+            <div id="productsPanel" class="hidden">
+                <h4>Productos</h4>
+
+                <div th:each="p : ${products}" class="product-row">
+
+                    <input type="checkbox"
+                           th:id="${'prod-'+p.id}"
+                           th:name="productIds"
+                           th:value="${p.id}"
+                           class="prod-check">
+
+                    <label th:for="${'prod-'+p.id}"
+                           th:text="${p.name + ' - $' + p.price}"></label>
+
+                    <input type="number"
+                           name="quantities"
+                           value="1"
+                           min="1"
+                           class="qty-input"
+                           disabled>
+
+                    <span class="price" th:text="${p.price}" style="display:none;"></span>
+                </div>
+
+                <h3>Total: $<span id="liveTotal">0</span></h3>
+                <button class="btn" type="submit">Crear factura</button>
+            </div>
+
+        </form>
     </div>
-  </section>
+
+</section>
+
+<!-- ------------------- JS --------------------- -->
 <script>
-document.querySelectorAll('.prod-check').forEach((chk, idx) => {
-    chk.addEventListener('change', updateTotal);
+
+function selectTable(div){
+    let id = div.dataset.id;
+    let name = div.dataset.name;
+
+    document.getElementById("tableId").value = id;
+    document.getElementById("tableName").textContent = name;
+
+    document.getElementById("productsPanel").classList.remove("hidden");
+}
+
+document.querySelectorAll(".prod-check").forEach(chk=>{
+    chk.addEventListener("change", updateTotal);
+});
+document.querySelectorAll(".qty-input").forEach(q=>{
+    q.addEventListener("input", updateTotal);
 });
 
-document.querySelectorAll('.qty-input').forEach((qty) => {
-    qty.addEventListener('input', updateTotal);
-});
-
-function updateTotal() {
+function updateTotal(){
     let total = 0;
 
-    document.querySelectorAll('.product-row').forEach(row => {
-        const check = row.querySelector('.prod-check');
-        const qty = row.querySelector('.qty-input');
-        const price = parseFloat(row.querySelector('.price').textContent);
+    document.querySelectorAll(".product-row").forEach(row=>{
+        const check = row.querySelector(".prod-check");
+        const qty = row.querySelector(".qty-input");
+        const price = parseFloat(row.querySelector(".price").textContent);
 
-        if (check.checked) {
+        if(check.checked){
             qty.disabled = false;
-            total += price * qty.value;
+            total += qty.value * price;
         } else {
             qty.disabled = true;
         }
     });
 
-    document.getElementById('liveTotal').textContent = total.toFixed(2);
+    document.getElementById("liveTotal").textContent = total.toFixed(2);
 }
+
 </script>
+
 </body>
 </html>
+
