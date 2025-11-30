@@ -15,5 +15,6 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
            "GROUP BY o.worker.username " +
            "ORDER BY totalVendio DESC")
         List<Object[]> findTopSellers();
+        
 }
 
