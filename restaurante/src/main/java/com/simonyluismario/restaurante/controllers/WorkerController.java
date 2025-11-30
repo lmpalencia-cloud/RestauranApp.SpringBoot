@@ -23,12 +23,12 @@ public class WorkerController {
         this.userRepository = userRepository;
     }
 
-    @GetMapping("/workspace")
+  /*  @GetMapping("/workspace")
     public String workspace(Model model){
         model.addAttribute("tables", tableRepository.findAll());
         model.addAttribute("products", productService.listAll());
         return "worker/workspace";
-    }
+    }*/
 
     @PostMapping("/order/create")
     public String createOrder(@RequestParam Long tableId, @RequestParam(required=false) Long[] productIds, @RequestParam(required=false) Integer[] quantities, org.springframework.security.core.Authentication auth){

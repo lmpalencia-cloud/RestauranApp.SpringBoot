@@ -1,37 +1,44 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Lista de Empleados</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <title>Empleados</title>
 </head>
 <body>
 
-<h1>Empleados Registrados</h1>
+<h2>Lista de empleados</h2>
 
-<table border="1" cellpadding="10">
+<table border="1">
     <thead>
         <tr>
             <th>ID</th>
-            <th>Nombre completo</th>
             <th>Usuario</th>
             <th>Email</th>
-            <th>Rol</th>
+            <th>Nombre completo</th>
         </tr>
     </thead>
 
     <tbody>
-        <tr th:each="emp : ${employees}">
-            <td th:text="${emp.id}"></td>
-            <td th:text="${emp.fullName}"></td>
-            <td th:text="${emp.username}"></td>
-            <td th:text="${emp.email}"></td>
-            <td th:text="${emp.role}"></td>
+        <tr th:each="w : ${workers}">
+            <td th:text="${w.id}"></td>
+            <td th:text="${w.username}"></td>
+            <td th:text="${w.email}"></td>
+            <td th:text="${w.fullName}"></td>
         </tr>
     </tbody>
-
 </table>
+
+<h3>Crear nuevo empleado</h3>
+<form th:action="@{/admin/employees/create}" method="post">
+    <input placeholder="Usuario" name="username" required>
+    <input placeholder="Contraseña" name="password" type="password" required>
+    <input placeholder="Email" name="email" required>
+    <input placeholder="Nombre completo" name="fullName" required>
+    <button type="submit">Crear empleado</button>
+
+</form>
+
 
 </body>
 </html>
+
 
