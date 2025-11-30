@@ -7,6 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
+import java.util.List;
 
 @Controller
 @RequestMapping("/worker")
@@ -84,6 +85,17 @@ public String viewOrder(@PathVariable Long id, Model model){
             .orElseThrow(() -> new RuntimeException("Orden no encontrada"));
     model.addAttribute("order", order);
     return "worker/order_view";
+}
+@GetMapping("/mesa/{numMesa}")
+public String verProductosMesa(@PathVariable int numMesa, Model model) {
+
+    // Obtener todos los productos desde el servicio
+    List<Product> products = productService.listAll();
+
+    model.addAttribute("mesa", numMesa);
+    model.addAttribute("products", products);
+
+    return "worker/table_products";
 }
 
 }
