@@ -1,148 +1,80 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Workspace</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <style>
-        .tables-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
-        }
-        .table-box {
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
-            transition: 0.2s;
-        }
-        .free { background: #2ecc71; }
-        .busy { background: #e74c3c; }
-        .table-box:hover { transform: scale(1.05); }
-
-        .product-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 0;
-            border-bottom: 1px solid #ddd;
-        }
-        .hidden { display: none; }
-    </style>
+  <meta charset="utf-8">
+  <title>Mesas</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}">
+  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+  <style>
+    .tables-grid { display:grid; grid-template-columns: repeat(5, 1fr); gap:14px; }
+    .table-box { padding:18px; border-radius:12px; text-align:center; color:#fff; font-weight:700; cursor:pointer; }
+    .free { background:#2ecc71; }       /* verde */
+    .busy { background:#e74c3c; }       /* rojo */
+    .paid-not-clean { background:#95a5a6; } /* gris */
+    .table-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .menu-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #eee; }
+  </style>
 </head>
-
 <body>
-
 <header class="topbar">
-    <h1>Espacio de trabajo - Trabajador</h1>
-    <nav><a th:href="@{/logout}">Salir</a></nav>
+  <h1>Mesas</h1>
+  <nav><a th:href="@{/logout}">Salir</a></nav>
 </header>
 
-<section class="container two-col">
-
-    <!-- ------------------- LISTADO DE MESAS --------------------- -->
-    <div class="card">
-        <h3>Mesas</h3>
-
-        <div class="tables-grid">
-            <div th:each="t : ${tables}"
-                 th:class="'table-box ' + (${t.occupied} ? 'busy' : 'free')"
-                 th:data-id="${t.id}"
-                 th:data-name="${t.name}"
-                 onclick="selectTable(this)">
-                <span th:text="${t.name}"></span>
-            </div>
-        </div>
+<section class="container">
+  <div class="tables-grid">
+    <div th:each="t : ${tables}"
+         th:id="'table-'+${t.id}"
+         th:data-id="${t.id}"
+         th:data-name="${t.name}"
+         th:class="'table-box ' + (${t.occupied} ? 'busy' : (${t.cleaned} ? 'free' : 'paid-not-clean'))"
+         onclick="openTable(this)">
+      <div class="table-top">
+        <span th:text="${t.name}">Mesa X</span>
+        <label style="font-size:.85rem;">
+          Limpia <input type="checkbox" th:checked="${t.cleaned}" th:onchange="'toggleClean('+${t.id}+ ', this.checked)'" />
+        </label>
+      </div>
+      <div><small th:text="${t.capacity > 0 ? 'Cap: ' + t.capacity : ''}"></small></div>
     </div>
-
-    <!-- ------------------- PANEL CREAR ORDEN ------------------- -->
-    <div class="card">
-
-        <h3>Crear orden</h3>
-
-        <form th:action="@{/worker/order/create}" method="post" id="orderForm">
-
-            <input type="hidden" name="tableId" id="tableId">
-
-            <h4>Mesa seleccionada: <span id="tableName">Ninguna</span></h4>
-
-            <div id="productsPanel" class="hidden">
-                <h4>Productos</h4>
-
-                <div th:each="p : ${products}" class="product-row">
-
-                    <input type="checkbox"
-                           th:id="${'prod-'+p.id}"
-                           th:name="productIds"
-                           th:value="${p.id}"
-                           class="prod-check">
-
-                    <label th:for="${'prod-'+p.id}"
-                           th:text="${p.name + ' - $' + p.price}"></label>
-
-                    <input type="number"
-                           name="quantities"
-                           value="1"
-                           min="1"
-                           class="qty-input"
-                           disabled>
-
-                    <span class="price" th:text="${p.price}" style="display:none;"></span>
-                </div>
-
-                <h3>Total: $<span id="liveTotal">0</span></h3>
-                <button class="btn" type="submit">Crear factura</button>
-            </div>
-
-        </form>
-    </div>
-
+  </div>
 </section>
 
-<!-- ------------------- JS --------------------- -->
-<script>
+<!-- Modal mesa -->
+<div class="modal fade" id="tableModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="modalTitle">Mesa</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-7">
+            <h6>Menú</h6>
+            <div id="menuList"></div>
+          </div>
+          <div class="col-md-5">
+            <h6>Cuenta</h6>
+            <div id="orderItems"></div>
+            <div class="mt-2"><strong>Total: $<span id="orderTotal">0.00</span></strong></div>
+            <div class="mt-3 d-flex gap-2">
+              <button id="btnCreateOrder" class="btn btn-primary">Hacer pedido</button>
+              <a id="btnViewInvoice" class="btn btn-secondary" target="_blank">Ver factura</a>
+              <button id="btnPay" class="btn btn-success">Pagar factura</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-function selectTable(div){
-    let id = div.dataset.id;
-    let name = div.dataset.name;
-
-    document.getElementById("tableId").value = id;
-    document.getElementById("tableName").textContent = name;
-
-    document.getElementById("productsPanel").classList.remove("hidden");
-}
-
-document.querySelectorAll(".prod-check").forEach(chk=>{
-    chk.addEventListener("change", updateTotal);
-});
-document.querySelectorAll(".qty-input").forEach(q=>{
-    q.addEventListener("input", updateTotal);
-});
-
-function updateTotal(){
-    let total = 0;
-
-    document.querySelectorAll(".product-row").forEach(row=>{
-        const check = row.querySelector(".prod-check");
-        const qty = row.querySelector(".qty-input");
-        const price = parseFloat(row.querySelector(".price").textContent);
-
-        if(check.checked){
-            qty.disabled = false;
-            total += qty.value * price;
-        } else {
-            qty.disabled = true;
-        }
-    });
-
-    document.getElementById("liveTotal").textContent = total.toFixed(2);
-}
-
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+<script th:inline="javascript">
+  const PRODUCTS = /*[[${products}]]*/ []; // opcional si renderizas lista aquí, sino usa endpoint JSON
 </script>
-
+<script th:src="@{/js/worker.js}"></script>
 </body>
 </html>
 
