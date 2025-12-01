@@ -23,20 +23,54 @@ public class WorkerController {
         this.userRepository = userRepository;
     }
 
-  /*  @GetMapping("/workspace")
-    public String workspace(Model model){
-        model.addAttribute("tables", tableRepository.findAll());
-        model.addAttribute("products", productService.listAll());
-        return "worker/workspace";
-    }*/
+    @GetMapping("/orders/current/{tableId}")
+@ResponseBody
+public OrderEntity getCurrentOrder(@PathVariable Long tableId){
+    return orderService.findOpenByTableId(tableId).orElse(null);
+}
+
+@PostMapping("/orders/current/{tableId}/ensure")
+@ResponseBody
+public OrderEntity ensureOpenOrder(@PathVariable Long tableId,
+                                  org.springframework.security.core.Authentication auth){
+    User worker = userRepository.findByUsername(auth.getName()).orElseThrow();
+    return orderService.getOrCreateOpenOrder(tableId, worker);
+}
+
+@PostMapping("/orders/{orderId}/items")
+@ResponseBody
+public OrderItemm addItemAjax(@PathVariable Long orderId,
+                              @RequestParam Long productId,
+                              @RequestParam(defaultValue="1") Integer quantity){
+    return orderService.addItemToOrder(orderId, productId, quantity);
+}
+
+@PostMapping("/orders/{orderId}/pay")
+@ResponseBody
+public void payAjax(@PathVariable Long orderId){
+    orderService.payOrder(orderId);
+}
+
+@PutMapping("/tables/{id}/clean")
+@ResponseBody
+public TableEntity setTableClean(@PathVariable Long id, @RequestParam boolean cleaned){
+    TableEntity t = tableRepository.findById(id).orElseThrow();
+    t.setCleaned(cleaned);
+    // si está limpia y sin orden abierta, estará verde (occupied=false)
+    tableRepository.save(t);
+    return t;
+}
 
     @PostMapping("/order/create")
     public String createOrder(@RequestParam Long tableId, @RequestParam(required=false) Long[] productIds, @RequestParam(required=false) Integer[] quantities, org.springframework.security.core.Authentication auth){
         TableEntity table = tableRepository.findById(tableId).orElseThrow();
         User worker = userRepository.findByUsername(auth.getName()).orElseThrow();
-
+        if (table.isOccupied()) {
+       throw new RuntimeException("La mesa ya está ocupada.");
+  }
         var items = new ArrayList<OrderItemm>();
         double total = 0;
+        OrderEntity order = new OrderEntity();
         if (productIds != null) {
             for (int i = 0; i < productIds.length; i++) {
                 var p = productService.findById(productIds[i]).orElseThrow();
@@ -47,11 +81,14 @@ public class WorkerController {
                 it.setPrice(p.getPrice());
                 total += p.getPrice() * qty;
                 items.add(it);
+                it.setOrder(order);
+
             }
         }
+
         
 
-        OrderEntity order = new OrderEntity();
+        //OrderEntity order = new OrderEntity();
         order.setTable(table);
         order.setWorker(worker);
         order.setItems(items);
