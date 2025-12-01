@@ -19,10 +19,12 @@ public class OrderService {
 
     public Optional<OrderEntity> findById(Long id){ return repo.findById(id); }
     public OrderEntity save(OrderEntity o){ return repo.save(o); }
-
+    
     public Optional<OrderEntity> findOpenByTableId(Long tableId){
-        return repo.findOpenByTableId(tableId);
-    }
+    var list = repo.findOpenOrdersByTableId(tableId);
+    return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0)); // solo la más reciente
+}
+
 
     public OrderEntity getOrCreateOpenOrder(Long tableId, User worker){
         var opt = findOpenByTableId(tableId);

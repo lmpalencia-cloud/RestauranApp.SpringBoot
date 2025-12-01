@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="'Pedido - ' + ${table.name}">Pedido</title>
+  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+  <style>
+    .menu-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #eee; }
+    .order-item { display:flex; justify-content:space-between; padding:6px 0; }
+  </style>
+</head>
+<body>
+<div class="container mt-4">
+  <h3 th:text="'Mesa: ' + ${table.name}">Mesa</h3>
+
+  <div class="row">
+    <!-- Menú -->
+    <div class="col-md-7">
+      <h5>Menú</h5>
+      <div id="menuList">
+        <div th:each="p : ${products}" class="menu-item">
+          <div>
+            <strong th:text="${p.name}">Nombre</strong>
+            <div class="text-muted" th:text="${p.description}">Descripción</div>
+          </div>
+          <div>
+            <span th:text="'$' + ${p.price}">Precio</span>
+            <button class="btn btn-sm btn-outline-primary ms-2" th:onclick="'addItem('+${p.id}+','+${p.price}+')'">Agregar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cuenta -->
+    <div class="col-md-5">
+      <h5>Cuenta</h5>
+      <div id="orderItems">
+        <div th:if="${order == null || #lists.isEmpty(order.items)}" class="text-muted">Sin pedidos</div>
+        <div th:each="item : ${order.items}" class="order-item">
+          <div th:text="${item.product.name} + ' x' + ${item.quantity}">Producto</div>
+          <div th:text="'$' + (${item.price} * ${item.quantity})">Subtotal</div>
+        </div>
+      </div>
+      <div class="mt-2"><strong>Total: $<span id="orderTotal" th:text="${order != null ? order.total : '0.00'}">0.00</span></strong></div>
+
+      <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-success" onclick="payOrder()">Pagar factura</button>
+        <a class="btn btn-secondary" th:href="@{|/worker/order/view/${order != null ? order.id : 0}|}" target="_blank">Ver factura</a>
+        <a class="btn btn-outline-dark" th:href="@{/worker/workspace}">⬅ Volver</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const tableId = /*[[${table.id}]]*/ 0;
+const orderId = /*[[${order != null ? order.id : 0}]]*/ 0;
+
+async function addItem(productId, price){
+  let id = orderId;
+  if(id === 0){
+    const res = await fetch(`/worker/orders/current/${tableId}/ensure`, { method:'POST' });
+    const json = await res.json();
+    id = json.id;
+  }
+  const res = await fetch(`/worker/orders/${id}/items`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `productId=${productId}&quantity=1`
+  });
+  if(res.ok){
+    location.reload(); // recarga para ver cuenta actualizada
+  } else {
+    alert('Error al agregar producto');
+  }
+}
+
+async function payOrder(){
+  if(orderId === 0) return;
+  const res = await fetch(`/worker/orders/${orderId}/pay`, { method:'POST' });
+  if(res.ok){
+    alert('Factura pagada');
+    location.href = '/worker/workspace';
+  } else {
+    alert('Error al pagar factura');
+  }
+}
+</script>
+</body>
+</html>

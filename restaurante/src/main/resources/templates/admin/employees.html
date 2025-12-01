@@ -1,43 +1,69 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Empleados</title>
+  <meta charset="UTF-8">
+  <title>Empleados</title>
+  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
 </head>
 <body>
+<header class="topbar p-3 bg-dark text-white">
+  <div class="container d-flex justify-content-between">
+    <h3 class="m-0">Empleados</h3>
+    <nav><a class="text-white" th:href="@{/admin/menu}">Volver</a></nav>
+  </div>
+</header>
 
-<h2>Lista de empleados</h2>
-
-<table border="1">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Usuario</th>
-            <th>Email</th>
-            <th>Nombre completo</th>
+<div class="container mt-4">
+  <div class="card p-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="m-0">Lista de empleados</h5>
+      <input class="form-control" id="searchInput" placeholder="Buscar por nombre/usuario/email" style="max-width:280px;">
+    </div>
+    <table class="table table-striped">
+      <thead><tr><th>Nombre</th><th>Usuario</th><th>Email</th><th>Acciones</th></tr></thead>
+      <tbody id="employeesBody">
+        <tr th:each="w : ${workers}" th:id="'worker-'+${w.id}">
+          <td th:text="${w.fullName}">Nombre</td>
+          <td th:text="${w.username}">usuario</td>
+          <td th:text="${w.email}">email</td>
+          <td>
+            <button class="btn btn-sm btn-outline-danger" th:onclick="'confirmDelete(' + ${w.id} + ')'">Eliminar</button>
+          </td>
         </tr>
-    </thead>
+      </tbody>
+    </table>
+  </div>
 
-    <tbody>
-        <tr th:each="w : ${workers}">
-            <td th:text="${w.id}"></td>
-            <td th:text="${w.username}"></td>
-            <td th:text="${w.email}"></td>
-            <td th:text="${w.fullName}"></td>
-        </tr>
-    </tbody>
-</table>
+  <div class="card p-3 mt-4">
+    <h5>Crear nuevo empleado</h5>
+    <form th:action="@{/admin/employees/create}" method="post" class="row g-2">
+      <div class="col-md-3"><input class="form-control" placeholder="Usuario" name="username" required></div>
+      <div class="col-md-3"><input class="form-control" placeholder="Contraseña" name="password" type="password" required></div>
+      <div class="col-md-3"><input class="form-control" placeholder="Email" name="email" type="email" required></div>
+      <div class="col-md-3"><input class="form-control" placeholder="Nombre completo" name="fullName" required></div>
+      <div class="col-12"><button type="submit" class="btn btn-primary">Crear empleado</button></div>
+    </form>
+  </div>
+</div>
 
-<h3>Crear nuevo empleado</h3>
-<form th:action="@{/admin/employees/create}" method="post">
-    <input placeholder="Usuario" name="username" required>
-    <input placeholder="Contraseña" name="password" type="password" required>
-    <input placeholder="Email" name="email" required>
-    <input placeholder="Nombre completo" name="fullName" required>
-    <button type="submit">Crear empleado</button>
-
-</form>
-<a class="btn" th:href="@{/admin/menu}">⬅ Volver al menú</a>
-
+<script>
+function confirmDelete(id){
+  if(!confirm('Eliminar empleado y sus datos permanentemente?')) return;
+  fetch('/admin/employees/' + id, { method: 'DELETE' })
+    .then(r => {
+      if(r.ok) document.getElementById('worker-' + id).remove();
+      else alert('Error al eliminar');
+    });
+}
+// filtro rápido
+document.getElementById('searchInput').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('#employeesBody tr').forEach(tr => {
+    const txt = tr.innerText.toLowerCase();
+    tr.style.display = txt.includes(q) ? '' : 'none';
+  });
+});
+</script>
 </body>
 </html>
 
