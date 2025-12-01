@@ -57,6 +57,7 @@ public class WorkerController {
         order.setItems(items);
         order.setTotal(total);
         order.setPaid(false);
+        items.forEach(i -> i.setOrder(order)); 
         orderService.save(order);
 
         table.setOccupied(true);
