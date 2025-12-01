@@ -33,4 +33,9 @@ public class OrderEntity {
     private boolean paid = false;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+    @PrePersist
+    public void prePersist() {
+    createdAt = LocalDateTime.now();
+}
+
 }

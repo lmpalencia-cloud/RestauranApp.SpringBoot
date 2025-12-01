@@ -25,7 +25,7 @@ public class SecurityConfig {
         return username -> {
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
-            var role = "ROLE_" + user.getRole().name();
+
     return org.springframework.security.core.userdetails.User
     .withUsername(user.getUsername())
     .password(user.getPassword())
