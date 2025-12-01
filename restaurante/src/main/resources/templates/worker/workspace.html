@@ -28,7 +28,7 @@
          th:data-id="${t.id}"
          th:data-name="${t.name}"
          th:class="'table-box ' + (${t.occupied} ? 'busy' : (${t.cleaned} ? 'free' : 'paid-not-clean'))"
-        th:onclick="'location.href=\'/worker/order/' + ${t.id} + '\'"'>
+         th:onclick="|location.href='/worker/order/${t.id}'|"></div>
       <div class="table-top">
         <span th:text="${t.name}">Mesa X</span>
         <label style="font-size:.85rem;">
