@@ -1,7 +1,7 @@
 package com.simonyluismario.restaurante.config;
 
 import com.simonyluismario.restaurante.repositories.*;
-import com.simonyluismario.restaurante.services.*;
+
 import com.simonyluismario.restaurante.models.*;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
