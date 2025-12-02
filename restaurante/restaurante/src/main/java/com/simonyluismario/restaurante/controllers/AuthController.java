@@ -1,7 +1,6 @@
 package com.simonyluismario.restaurante.controllers;
 
 import com.simonyluismario.restaurante.services.*;
-import com.simonyluismario.restaurante.models.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -43,12 +42,14 @@ public class AuthController {
 
     @PostMapping("/olvide")
     public String olvideSubmit(@RequestParam String usernameOrEmail, Model model) {
-        // buscar por username o email
-        userService.findByEmail(usernameOrEmail).ifPresent(u -> userService.createPasswordResetToken(u.getEmail()));
-        userService.findByUsername(usernameOrEmail).ifPresent(u -> userService.createPasswordResetToken(u.getEmail()));
+      userService.findByEmail(usernameOrEmail)
+        .ifPresent(u -> userService.createPasswordResetToken(u.getEmail()));
 
-        model.addAttribute("msg", "Si el usuario/email existe, recibirás un correo con instrucciones.");
-        return "olvide";
+    userService.findByUsername(usernameOrEmail)
+        .ifPresent(u -> userService.createPasswordResetToken(u.getEmail()));
+
+    model.addAttribute("msg", "Si el usuario/email existe, recibirás un correo con instrucciones.");
+    return "olvide";
     }
 
     @GetMapping("/reset-password")

@@ -1,44 +1,82 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><title>Workspace</title>
-<link rel="stylesheet" th:href="@{/css/style.css}"></head>
+<head>
+    <meta charset="UTF-8">
+    <title>Espacio de trabajo - Trabajador</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
 <body>
-  <header class="topbar">
+
+<header class="topbar">
     <h1>Espacio de trabajo - Trabajador</h1>
     <nav><a th:href="@{/logout}">Salir</a></nav>
-  </header>
+</header>
 
-  <section class="container two-col">
-    <div class="card">
-      <h3>Mesas</h3>
-      <ul>
-        <li th:each="t : ${tables}">
-          <strong th:text="${t.name}">Mesa</strong>
-          <span th:text="${t.occupied ? ' (Ocupada)' : ''}"></span>
-        </li>
-      </ul>
-    </div>
+<section class="container">
 
-    <div class="card">
-      <h3>Crear orden</h3>
-      <form th:action="@{/worker/order/create}" method="post">
-        <label>Tabla</label>
-        <select name="tableId" required>
-          <option th:each="t: ${tables}" th:value="${t.id}" th:text="${t.name}"></option>
-        </select>
-
-        <div>
-          <label>Productos</label>
-          <div th:each="p,iterStat : ${products}">
-            <input type="checkbox" th:id="${'prod-'+p.id}" th:name="productIds" th:value="${p.id}"/>
-            <label th:for="${'prod-'+p.id}" th:text="${p.name + ' - ' + p.price}"></label>
-            <input type="number" name="quantities" min="1" value="1"/>
-          </div>
+    <!-- CONTENEDOR DE MESAS -->
+    <div class="mesas-box">
+        <h2>Mesas</h2>
+        <div class="mesas-grid">
+            <!-- Renderiza 20 mesas -->
+            <a th:each="i : ${#numbers.sequence(1,20)}"
+               th:href="@{'/worker/mesa/' + ${i}}"
+               class="mesa-btn">
+                Mesa [[${i}]]
+            </a>
         </div>
-        <button class="btn" type="submit">Crear factura</button>
-      </form>
     </div>
-  </section>
+
+</section>
+
+<style>
+/* Contenedor */
+.mesas-box {
+    width: 100%;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+/* GRID DE 5 X 4 */
+.mesas-grid {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* ← FIJO 5 columnas */
+    gap: 15px;
+}
+
+.mesa-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    background: #007bff;
+    color: white;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.mesa-btn:hover {
+    background: #0056b3;
+    transform: translateY(-2px);
+}
+</style>
 
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
