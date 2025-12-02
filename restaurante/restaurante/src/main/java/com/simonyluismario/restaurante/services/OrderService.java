@@ -9,9 +9,13 @@ import java.util.Optional;
 @Service
 @Transactional
 public class OrderService {
+    
     private final OrderRepository repo;
     public OrderService(OrderRepository repo){ this.repo = repo; }
 
     public OrderEntity save(OrderEntity o){ return repo.save(o); }
     public Optional<OrderEntity> findById(Long id){ return repo.findById(id); }
+public Optional<OrderEntity> findLastNotPaidByTable(TableEntity mesa){
+    return repo.findTopByTableAndPaidFalseOrderByCreatedAtDesc(mesa);
+}
 }

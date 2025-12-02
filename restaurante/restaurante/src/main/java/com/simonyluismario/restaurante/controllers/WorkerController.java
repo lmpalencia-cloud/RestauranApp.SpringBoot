@@ -3,9 +3,13 @@ package com.simonyluismario.restaurante.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simonyluismario.restaurante.models.*;
 import com.simonyluismario.restaurante.services.*;
+
+import jakarta.transaction.Transactional;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.simonyluismario.restaurante.repositories.*;
 
+import java.util.Optional; 
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -115,13 +119,54 @@ public class WorkerController {
         return "redirect:/worker/workspace";
     }
     @PostMapping("/mesa/liberar/{id}")
-public String liberarMesa(@PathVariable Long id) {
-    TableEntity mesa = tableRepository.findById(id)
+public String liberarMesa(@PathVariable Long id, Model model){ 
+       TableEntity mesa = tableRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
 
+    // Obtener el último pedido no pagado de esta mesa
+    OrderEntity order = orderService.findLastNotPaidByTable(mesa)
+            .orElseThrow(() -> new RuntimeException("No hay pedidos activos para esta mesa"));
+
+    model.addAttribute("order", order);
+    return "worker/order_view"; // Mostrar factura antes de liberar
+}
+
+  
+
+
+ // Pagar pedido y liberar mesa
+   @PostMapping("/mesa/pagar/{orderId}")
+   @Transactional
+public String pagarPedido(@PathVariable Long orderId) {
+    // Obtener pedido
+    OrderEntity order = orderService.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
+
+    // Marcar pedido como pagado
+    order.setPaid(true);
+    orderService.save(order); // Guarda el pedido
+
+    // Liberar la mesa asociada
+    TableEntity mesa = order.getTable();
     mesa.setOccupied(false);
-    tableRepository.save(mesa);
+    tableRepository.save(mesa); // Guardar la mesa
 
     return "redirect:/worker/workspace";
 }
+  // ------------------------------
+    // Mostrar factura antes de liberar mesa
+    // ------------------------------
+    @PostMapping("/mesa/factura/{id}")
+    public String mostrarFactura(@PathVariable Long id, Model model) {
+        TableEntity mesa = tableRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
+
+        // MARCADO: obtener el último pedido no pagado
+        OrderEntity order = orderService.findLastNotPaidByTable(mesa)
+                .orElseThrow(() -> new RuntimeException("No hay pedidos pendientes en esta mesa"));
+
+        model.addAttribute("order", order);
+        return "worker/order_view";
+    }
+
 }
