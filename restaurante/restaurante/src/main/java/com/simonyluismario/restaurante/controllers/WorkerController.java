@@ -59,65 +59,80 @@ public class WorkerController {
     // ✅ Guardar pedido
     @PostMapping("/pedido/guardar")
     public String guardarPedido(
-            @RequestParam Long mesaId,
-            @RequestParam String pedidoJson,
-            Principal principal) {
+              @RequestParam Long mesaId,
+        @RequestParam String pedidoJson,
+        Principal principal) {
 
-        TableEntity mesa = tableRepository.findById(mesaId)
-                .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
+    TableEntity mesa = tableRepository.findById(mesaId)
+            .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
 
-        if (mesa.isOccupied()) {
-            throw new RuntimeException("La mesa ya tiene un pedido activo");
-        }
+    User worker = userRepository.findByUsername(principal.getName())
+            .orElseThrow(() -> new RuntimeException("Trabajador no encontrado"));
 
-        User worker = userRepository.findByUsername(principal.getName())
-                .orElseThrow(() -> new RuntimeException("Trabajador no encontrado"));
+    ObjectMapper mapper = new ObjectMapper();
+    Map<String, Map<String,Object>> pedidoMap;
+    try {
+        pedidoMap = mapper.readValue(pedidoJson, new TypeReference<>() {});
+    } catch (Exception e) {
+        throw new RuntimeException("Error leyendo JSON del pedido");
+    }
 
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, Map<String,Object>> pedidoMap;
-        try {
-            pedidoMap = mapper.readValue(pedidoJson, new TypeReference<>() {});
-        } catch (Exception e) {
-            throw new RuntimeException("Error leyendo JSON del pedido");
-        }
+    // Obtener pedido activo o crear uno nuevo
+    OrderEntity order = orderService.findLastNotPaidByTable(mesa)
+            .orElseGet(() -> {
+                OrderEntity o = new OrderEntity();
+                o.setTable(mesa);
+                o.setWorker(worker);
+                o.setPaid(false);
+                o.setCreatedAt(LocalDateTime.now());
+                o.setItems(new ArrayList<>());
+                return o;
+            });
 
-        OrderEntity order = new OrderEntity();
-        order.setTable(mesa);
-        order.setWorker(worker);
-        order.setPaid(false);
-        order.setCreatedAt(LocalDateTime.now());
+    double total = order.getTotal();
+    List<OrderItemm> items = order.getItems();
 
-        List<OrderItemm> items = new ArrayList<>();
-        double total = 0;
+    for (String idStr : pedidoMap.keySet()) {
+        Long productId = Long.parseLong(idStr);
+        Map<String,Object> data = pedidoMap.get(idStr);
+        int qty = (int) data.get("cantidad");
+        double price = Double.parseDouble(data.get("precio").toString());
 
-        for (String idStr : pedidoMap.keySet()) {
-            Long productId = Long.parseLong(idStr);
-            Map<String,Object> data = pedidoMap.get(idStr);
-            int qty = (int) data.get("cantidad");
-            double price = Double.parseDouble(data.get("precio").toString());
+        Product producto = productService.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-            Product producto = productService.findById(productId)
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+        // Ver si el producto ya está en el pedido
+        Optional<OrderItemm> existing = items.stream()
+                .filter(it -> it.getProduct().getId().equals(productId))
+                .findFirst();
 
+        if (existing.isPresent()) {
+            // Sumar cantidad
+            OrderItemm item = existing.get();
+            item.setQuantity(item.getQuantity() + qty);
+            item.setPrice(price); // opcional: actualizar precio por unidad
+        } else {
             OrderItemm item = new OrderItemm();
             item.setOrder(order);
             item.setProduct(producto);
             item.setQuantity(qty);
             item.setPrice(price);
-
-            total += qty * price;
             items.add(item);
         }
 
-        order.setItems(items);
-        order.setTotal(total);
-        orderService.save(order);
-
-        mesa.setOccupied(true);
-        tableRepository.save(mesa);
-
-        return "redirect:/worker/workspace";
+        total += qty * price;
     }
+
+    order.setItems(items);
+    order.setTotal(total);
+    orderService.save(order);
+
+    // Asegurar que la mesa sigue ocupada
+    mesa.setOccupied(true);
+    tableRepository.save(mesa);
+
+    return "redirect:/worker/mesa/" + mesa.getId();
+}
     @PostMapping("/mesa/liberar/{id}")
 public String liberarMesa(@PathVariable Long id, Model model){ 
        TableEntity mesa = tableRepository.findById(id)
