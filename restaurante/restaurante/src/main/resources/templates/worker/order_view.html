@@ -1,4 +1,4 @@
-<DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -9,7 +9,10 @@
 
 <header class="topbar">
     <h1>Detalle del Pedido</h1>
-    <nav><a th:href="@{/logout}">Salir</a></nav>
+    <nav>
+        <a th:href="@{/worker/workspace}" class="btn-regresar"> Volver </a> |
+        <a th:href="@{/logout}">Salir</a>
+    </nav>
 </header>
 
 <section class="container">
@@ -100,6 +103,22 @@
 
 .btn-pagar:hover {
     background: #1e7e34;
+    transform: translateY(-2px);
+}
+
+/* Botón regresar */
+.btn-regresar {
+    padding: 8px 15px;
+    background: #007bff;
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-regresar:hover {
+    background: #0056b3;
     transform: translateY(-2px);
 }
 
