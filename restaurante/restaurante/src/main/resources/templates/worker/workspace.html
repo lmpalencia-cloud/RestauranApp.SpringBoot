@@ -18,18 +18,46 @@
     <div class="mesas-box">
         <h2>Mesas</h2>
         <div class="mesas-grid">
-            <!-- Renderiza 20 mesas -->
-            <a th:each="i : ${#numbers.sequence(1,20)}"
-               th:href="@{'/worker/mesa/' + ${i}}"
-               class="mesa-btn">
-                Mesa [[${i}]]
-            </a>
+            <div th:each="mesa : ${tables}" style="display:flex; align-items:center; gap:5px;">
+                <a th:href="@{'/worker/mesa/' + ${mesa.id}}"
+                   th:classappend="${mesa.occupied} ? 'mesa-ocupada' : ''"
+                   class="mesa-btn">
+                    [[${mesa.name}]]
+                </a>
+
+                <form th:if="${mesa.occupied}" 
+                      th:action="@{'/worker/mesa/liberar/' + ${mesa.id}}" 
+                      method="post" style="display:inline-block;">
+                    <button type="submit" class="btn-liberar">Liberar</button>
+                </form>
+            </div>
         </div>
     </div>
 
 </section>
 
 <style>
+.mesas-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+}
+.mesa-btn {
+    padding: 15px;
+    background: #007bff;
+    color: white;
+    text-align: center;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: 0.2s;
+}
+.mesa-btn:hover { background: #0056b3; transform: translateY(-2px); }
+.mesa-ocupada {
+    background: #dc3545 !important;
+    cursor: not-allowed;
+}
+.mesa-ocupada:hover { transform: none; }
 /* Contenedor */
 .mesas-box {
     width: 100%;
@@ -65,13 +93,24 @@
     background: #0056b3;
     transform: translateY(-2px);
 }
+
+/* BOTÓN LIBERAR */
+.btn-liberar {
+    padding: 5px 10px;
+    background: #ffc107;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.btn-liberar:hover {
+    background: #e0a800;
+}
 </style>
 
 </body>
 </html>
-
-
-
 
 
 

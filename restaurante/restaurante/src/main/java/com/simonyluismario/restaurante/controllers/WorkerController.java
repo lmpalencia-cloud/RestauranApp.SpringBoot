@@ -1,7 +1,9 @@
 package com.simonyluismario.restaurante.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simonyluismario.restaurante.models.*;
 import com.simonyluismario.restaurante.services.*;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.simonyluismario.restaurante.repositories.*;
 
 import org.springframework.security.core.Authentication;
@@ -9,9 +11,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/worker")
@@ -28,112 +32,96 @@ public class WorkerController {
         this.userRepository = userRepository;
     }
 
+    // ✅ Workspace
     @GetMapping("/workspace")
     public String workspace(Model model){
         model.addAttribute("tables", tableRepository.findAll());
-        model.addAttribute("products", productService.listAll());
         return "worker/workspace";
     }
 
- @PostMapping("/order/create")
-public String createOrder(
-        @RequestParam Long tableId,
-        @RequestParam(required = false) Long[] productIds,
-        @RequestParam(required = false) Integer[] quantities,
-        Authentication auth
-){
-    // Buscar mesa
-    TableEntity table = tableRepository.findById(tableId)
-            .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
+    // ✅ Ver productos de la mesa
+    @GetMapping("/mesa/{id}")
+    public String verProductosMesa(@PathVariable Long id, Model model){
+        TableEntity mesa = tableRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
 
-    // Buscar trabajador logueado
-    String username = auth != null ? auth.getName() : null;
-    if (username == null) {
-        throw new RuntimeException("Usuario no autenticado");
+        List<Product> products = productService.listAll();
+        model.addAttribute("mesa", mesa);
+        model.addAttribute("products", products);
+
+        return "worker/table_products";
     }
-    User worker = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Trabajador no encontrado"));
 
-    // Crear lista de ítems
-    List<OrderItemm> items = new ArrayList<>();
-    double total = 0;
+    // ✅ Guardar pedido
+    @PostMapping("/pedido/guardar")
+    public String guardarPedido(
+            @RequestParam Long mesaId,
+            @RequestParam String pedidoJson,
+            Principal principal) {
 
-    if (productIds != null) {
-        for (int i = 0; i < productIds.length; i++) {
+        TableEntity mesa = tableRepository.findById(mesaId)
+                .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
 
-                Product p = productService.findById(productIds[i])
+        if (mesa.isOccupied()) {
+            throw new RuntimeException("La mesa ya tiene un pedido activo");
+        }
+
+        User worker = userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new RuntimeException("Trabajador no encontrado"));
+
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Map<String,Object>> pedidoMap;
+        try {
+            pedidoMap = mapper.readValue(pedidoJson, new TypeReference<>() {});
+        } catch (Exception e) {
+            throw new RuntimeException("Error leyendo JSON del pedido");
+        }
+
+        OrderEntity order = new OrderEntity();
+        order.setTable(mesa);
+        order.setWorker(worker);
+        order.setPaid(false);
+        order.setCreatedAt(LocalDateTime.now());
+
+        List<OrderItemm> items = new ArrayList<>();
+        double total = 0;
+
+        for (String idStr : pedidoMap.keySet()) {
+            Long productId = Long.parseLong(idStr);
+            Map<String,Object> data = pedidoMap.get(idStr);
+            int qty = (int) data.get("cantidad");
+            double price = Double.parseDouble(data.get("precio").toString());
+
+            Product producto = productService.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-            int qty = (quantities != null && quantities.length > i)
-                    ? quantities[i]
-                    : 1;
-
             OrderItemm item = new OrderItemm();
-            item.setProduct(p);
+            item.setOrder(order);
+            item.setProduct(producto);
             item.setQuantity(qty);
-            item.setPrice(p.getPrice());
+            item.setPrice(price);
 
-            total += p.getPrice() * qty;
-
+            total += qty * price;
             items.add(item);
         }
+
+        order.setItems(items);
+        order.setTotal(total);
+        orderService.save(order);
+
+        mesa.setOccupied(true);
+        tableRepository.save(mesa);
+
+        return "redirect:/worker/workspace";
     }
+    @PostMapping("/mesa/liberar/{id}")
+public String liberarMesa(@PathVariable Long id) {
+    TableEntity mesa = tableRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
 
-    // Crear la orden
-    OrderEntity order = new OrderEntity();
-    order.setTable(table);
-    order.setWorker(worker);
-    order.setItems(items);
-    order.setTotal(total);
-    order.setPaid(false);
-    order.setCreatedAt(LocalDateTime.now());
-
-    // AHORA sí puedes asignar la orden a cada ítem
-    for (OrderItemm it : items) {
-        it.setOrder(order);
-    }
-
-    // Guardar orden (cascade guarda los items también)
-    orderService.save(order);
-
-    // Marcar mesa ocupada
-    table.setOccupied(true);
-    tableRepository.save(table);
+    mesa.setOccupied(false);
+    tableRepository.save(mesa);
 
     return "redirect:/worker/workspace";
 }
-
-    @PostMapping("/order/pay/{id}")
-    public String payOrder(@PathVariable Long id){
-        var opt = orderService.findById(id);
-        if (opt.isPresent()){
-            var o = opt.get();
-            o.setPaid(true);
-            orderService.save(o);
-            TableEntity t = o.getTable();
-            t.setOccupied(false);
-            tableRepository.save(t);
-        }
-        return "redirect:/worker/workspace";
-    }
-    @GetMapping("/order/view/{id}")
-public String viewOrder(@PathVariable Long id, Model model){
-    var order = orderService.findById(id)
-            .orElseThrow(() -> new RuntimeException("Orden no encontrada"));
-    model.addAttribute("order", order);
-    return "worker/order_view";
-}
-
-@GetMapping("/mesa/{numMesa}")
-public String verProductosMesa(@PathVariable int numMesa, Model model) {
-
-    // Obtener todos los productos desde el servicio
-    List<Product> products = productService.listAll();
-
-    model.addAttribute("mesaId", numMesa);
-    model.addAttribute("products", products);
-
-    return "worker/table_products";
-}
-
 }
