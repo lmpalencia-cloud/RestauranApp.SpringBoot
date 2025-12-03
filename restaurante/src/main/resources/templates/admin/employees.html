@@ -1,70 +1,100 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <title>Empleados</title>
-  <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <meta charset="UTF-8">
+    <title>Empleados Registrados</title>
+
+    <!-- CDN TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-<header class="topbar p-3 bg-dark text-white">
-  <div class="container d-flex justify-content-between">
-    <h3 class="m-0">Empleados</h3>
-    <nav><a class="text-white" th:href="@{/admin/menu}">Volver</a></nav>
-  </div>
-</header>
 
-<div class="container mt-4">
-  <div class="card p-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h5 class="m-0">Lista de empleados</h5>
-      <input class="form-control" id="searchInput" placeholder="Buscar por nombre/usuario/email" style="max-width:280px;">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-6">
+
+<div class="bg-white shadow-lg rounded-2xl w-full max-w-4xl p-8">
+
+    <h1 class="text-3xl font-semibold text-gray-800 text-center mb-8">
+        Empleados Registrados
+    </h1>
+
+    <!-- Barra de búsqueda -->
+    <div class="flex justify-end mb-4">
+        <input id="searchInput" type="text"
+               placeholder="Buscar por nombre, usuario, email o rol"
+               class="border border-gray-300 rounded-lg px-4 py-2 w-72 shadow-sm focus:ring focus:ring-gray-300 focus:outline-none">
     </div>
-    <table class="table table-striped">
-      <thead><tr><th>Nombre</th><th>Usuario</th><th>Email</th><th>Acciones</th></tr></thead>
-      <tbody id="employeesBody">
-        <tr th:each="w : ${workers}" th:id="'worker-'+${w.id}">
-          <td th:text="${w.fullName}">Nombre</td>
-          <td th:text="${w.username}">usuario</td>
-          <td th:text="${w.email}">email</td>
-          <td>
-            <button class="btn btn-sm btn-outline-danger" th:onclick="'confirmDelete(' + ${w.id} + ')'">Eliminar</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
 
-  <div class="card p-3 mt-4">
-    <h5>Crear nuevo empleado</h5>
-    <form th:action="@{/admin/employees/create}" method="post" class="row g-2">
-      <div class="col-md-3"><input class="form-control" placeholder="Usuario" name="username" required></div>
-      <div class="col-md-3"><input class="form-control" placeholder="Contraseña" name="password" type="password" required></div>
-      <div class="col-md-3"><input class="form-control" placeholder="Email" name="email" type="email" required></div>
-      <div class="col-md-3"><input class="form-control" placeholder="Nombre completo" name="fullName" required></div>
-      <div class="col-12"><button type="submit" class="btn btn-primary">Crear empleado</button></div>
-    </form>
-  </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200 rounded-xl shadow-sm">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">ID</th>
+                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Nombre completo</th>
+                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Usuario</th>
+                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Email</th>
+                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Rol</th>
+                    <th class="px-6 py-3 text-left text-sm font-medium text-gray-700">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody id="employeesBody">
+                <tr th:each="emp : ${workers}"
+                    th:id="'worker-' + ${emp.id}"
+                    class="border-t hover:bg-gray-50 transition">
+                    <td class="px-6 py-3 text-gray-700" th:text="${emp.id}"></td>
+                    <td class="px-6 py-3 text-gray-700" th:text="${emp.fullName}"></td>
+                    <td class="px-6 py-3 text-gray-700" th:text="${emp.username}"></td>
+                    <td class="px-6 py-3 text-gray-700" th:text="${emp.email}"></td>
+                    <td class="px-6 py-3 text-gray-700" th:text="${emp.role}"></td>
+
+                    <!-- Botón eliminar -->
+                    <td class="px-6 py-3">
+                        <button th:onclick="'confirmDelete(' + ${emp.id} + ')'"
+                                class="text-red-600 font-semibold hover:text-red-800">
+                            Eliminar
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Botón Regresar -->
+    <div class="text-center mt-8">
+        <a href="/admin/menu"
+           class="px-4 py-2 bg-gray-700 text-white rounded-full shadow hover:bg-gray-800 transition text-xl">
+            &#8592; Regresar
+        </a>
+    </div>
+
 </div>
 
+<!-- Scripts -->
 <script>
-function confirmDelete(id){
-  if(!confirm('Eliminar empleado y sus datos permanentemente?')) return;
-  fetch('/admin/employees/' + id, { method: 'DELETE' })
-    .then(r => {
-      if(r.ok) document.getElementById('worker-' + id).remove();
-      else alert('Error al eliminar');
+    // Eliminar empleado por fetch DELETE
+    function confirmDelete(id) {
+        if (!confirm("¿Eliminar empleado permanentemente?")) return;
+
+        fetch("/admin/employees/" + id, {
+            method: "DELETE"
+        }).then(r => {
+            if (r.ok) {
+                document.getElementById("worker-" + id).remove();
+            } else {
+                alert("Error al eliminar el empleado.");
+            }
+        });
+    }
+
+    // Filtro rápido (nombre, usuario, email, rol)
+    document.getElementById("searchInput").addEventListener("input", e => {
+        const q = e.target.value.toLowerCase();
+
+        document.querySelectorAll("#employeesBody tr").forEach(tr => {
+            const txt = tr.innerText.toLowerCase();
+            tr.style.display = txt.includes(q) ? "" : "none";
+        });
     });
-}
-// filtro rápido
-document.getElementById('searchInput').addEventListener('input', e => {
-  const q = e.target.value.toLowerCase();
-  document.querySelectorAll('#employeesBody tr').forEach(tr => {
-    const txt = tr.innerText.toLowerCase();
-    tr.style.display = txt.includes(q) ? '' : 'none';
-  });
-});
 </script>
+
 </body>
 </html>
-
-

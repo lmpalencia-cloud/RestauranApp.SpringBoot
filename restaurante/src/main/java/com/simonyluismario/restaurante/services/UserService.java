@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 @Service
 @Transactional
@@ -87,4 +88,19 @@ public class UserService {
         resetTokens.remove(token);
         return true;
     }
+    public List<User> findAllUsers() {
+    return userRepository.findAll();
 }
+public boolean deleteUser(Long id) {
+    if (!userRepository.existsById(id)) {
+        return false;
+    }
+
+    userRepository.deleteById(id);
+    return true;
+}
+
+
+}
+
+
