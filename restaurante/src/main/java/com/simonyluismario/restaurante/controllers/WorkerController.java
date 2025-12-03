@@ -8,6 +8,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 
+
 @Controller
 @RequestMapping("/worker")
 public class WorkerController {
@@ -51,14 +52,16 @@ public void payAjax(@PathVariable Long orderId){
     orderService.payOrder(orderId);
 }
 
-@PutMapping("/tables/{id}/clean")
-@ResponseBody
-public TableEntity setTableClean(@PathVariable Long id, @RequestParam boolean cleaned){
-    TableEntity t = tableRepository.findById(id).orElseThrow();
+@PostMapping("/tables/{id}/clean")
+public String setTableClean(@PathVariable Long id, @RequestParam boolean cleaned){
+
+    TableEntity t = tableRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
+
     t.setCleaned(cleaned);
-    // si está limpia y sin orden abierta, estará verde (occupied=false)
     tableRepository.save(t);
-    return t;
+
+    return "redirect:/worker/table/" + id;
 }
 
     @PostMapping("/order/create")
@@ -103,19 +106,20 @@ public TableEntity setTableClean(@PathVariable Long id, @RequestParam boolean cl
         return "redirect:/worker/workspace";
     }
 
-    @PostMapping("/order/pay/{id}")
-    public String payOrder(@PathVariable Long id){
-        var opt = orderService.findById(id);
-        if (opt.isPresent()){
-            var o = opt.get();
-            o.setPaid(true);
-            orderService.save(o);
-            TableEntity t = o.getTable();
-            t.setOccupied(false);
-            tableRepository.save(t);
-        }
-        return "redirect:/worker/workspace";
+@GetMapping("/order/pay/{id}")
+public String payOrder(@PathVariable Long id){
+    var opt = orderService.findById(id);
+    if (opt.isPresent()){
+        var o = opt.get();
+        o.setPaid(true);
+        orderService.save(o);
+
+        TableEntity t = o.getTable();
+        t.setOccupied(false);
+        tableRepository.save(t);
     }
+    return "redirect:/worker/table/" + id;
+}
     @GetMapping("/order/view/{id}")
 public String viewOrder(@PathVariable Long id, Model model){
     var order = orderService.findById(id)
@@ -125,13 +129,32 @@ public String viewOrder(@PathVariable Long id, Model model){
 }
 @GetMapping("/workspace")
 public String workspace(Model model, @RequestParam(required=false) String q){
-    model.addAttribute("tables", tableRepository.findAll());
-    if (q != null && !q.isBlank())
-        model.addAttribute("products", productService.search(q));
-    else
-        model.addAttribute("products", productService.listAll());
+
+    model.addAttribute("tables",
+    tableRepository.findAll().stream()
+        .filter(t -> t != null)
+        .filter(t -> t.getName() != null && !t.getName().isBlank())
+        .toList()
+);
 
     return "worker/workspace";
 }
+
+@GetMapping("/table/{id}")
+    public String viewTable(@PathVariable Long id, Model model) {
+
+        TableEntity table = tableRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Mesa no encontrada"));
+
+        OrderEntity currentOrder = orderService.findOpenByTableId(id)
+                .orElse(null);
+
+        model.addAttribute("table", table);
+        model.addAttribute("currentOrder", currentOrder);
+        model.addAttribute("products", productService.listAll());
+
+        return "worker/table_view";
+}
+
 
 }

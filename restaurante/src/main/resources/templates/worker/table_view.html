@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title th:text="'Mesa ' + ${table.name}"></title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .menu-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+        }
+
+        .product-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,.1);
+            text-align: center;
+        }
+
+        .order-panel {
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #3498db;
+            color: white;
+            border: none;
+        }
+
+        .danger { background: #e74c3c; }
+        .success { background: #2ecc71; }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1 th:text="'Mesa ' + ${table.name}"></h1>
+    <nav><a th:href="@{/worker/workspace}">Volver</a></nav>
+</header>
+
+<section class="container two-col">
+
+    <!-- MENU -->
+    <div>
+        <h2>Menú</h2>
+
+        <div class="menu-grid">
+            <div class="product-card" th:each="p : ${products}">
+                <h4 th:text="${p.name}"></h4>
+                <p th:text="'$' + ${p.price}"></p>
+                <button th:onclick="'addProduct(' + ${p.id} + ');'">Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL DE ORDEN -->
+    <div class="order-panel">
+
+        <h2>Cuenta Actual</h2>
+
+        <div th:if="${currentOrder == null}">
+            <p>No hay orden abierta. Agrega un producto para iniciar.</p>
+        </div>
+
+        <div th:if="${currentOrder != null}">
+            <ul>
+                <li th:each="i : ${currentOrder.items}">
+                    <span th:text="${i.product.name}"></span> -
+                    <span th:text="${i.quantity}"></span> x 
+                    <span th:text="${i.price}"></span>
+                </li>
+            </ul>
+
+            <h3 th:text="'Total: $' + ${currentOrder.total}"></h3>
+
+            <br>
+
+            <button class="success"
+                th:onclick="'window.location.href=\'/worker/order/view/' + ${currentOrder.id} + '\';'">
+                Ver factura
+            </button>
+
+            <button class="danger"
+                th:onclick="'window.location.href=\'/worker/order/pay/' + ${currentOrder.id} + '\';'">
+                Pagar
+            </button>
+        </div>
+
+        <br><br>
+
+        <!-- CHECKBOX MESA LIBRE -->
+<form th:action="@{'/worker/tables/' + ${table.id} + '/clean'}" method="post">
+
+    <!-- Fallback para cuando el checkbox NO está marcado -->
+    <input type="hidden" name="cleaned" value="false">
+
+    <label>
+        <input type="checkbox" name="cleaned" value="true" th:checked="${table.cleaned}">
+        Mesa libre
+    </label>
+
+    <button type="submit">Actualizar</button>
+</form>
+
+    </div>
+
+</section>
+
+<script>
+function addProduct(pid){
+    const tableId = /*[[${table.id}]]*/ 0;
+
+    fetch(`/worker/orders/current/${tableId}/ensure`, { method: "POST" })
+    .then(r=>r.json())
+    .then(order => {
+        return fetch(`/worker/orders/${order.id}/items?productId=${pid}&quantity=1`, {
+            method: "POST"
+        });
+    })
+    .then(()=> location.reload());
+}
+</script>
+
+</body>
+</html>
