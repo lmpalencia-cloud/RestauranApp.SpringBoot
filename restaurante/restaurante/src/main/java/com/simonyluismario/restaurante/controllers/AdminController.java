@@ -3,6 +3,8 @@ package com.simonyluismario.restaurante.controllers;
 import com.simonyluismario.restaurante.models.*;
 import com.simonyluismario.restaurante.services.*;
 import com.simonyluismario.restaurante.repositories.*;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -66,5 +68,17 @@ public class AdminController {
         userService.registerWorker(username, password, email, fullName);
         return "redirect:/admin/employees";
     }
+  @DeleteMapping("/employees/{id}")
+@ResponseBody
+public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
+
+    boolean deleted = userService.deleteUser(id);
+
+    if (deleted) {
+        return ResponseEntity.ok().build();
+    } else {
+        return ResponseEntity.notFound().build();
+    }
+}
     
 }

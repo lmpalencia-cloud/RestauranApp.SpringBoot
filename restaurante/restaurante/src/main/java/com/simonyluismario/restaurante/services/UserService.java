@@ -91,4 +91,14 @@ public class UserService {
     public List<User> findAllUsers() {
     return userRepository.findAll();
 }
+public boolean deleteUser(Long id) {
+    if (!userRepository.existsById(id)) {
+        return false;
+    }
+
+    userRepository.deleteById(id);
+    return true;
+}
+
+
 }
