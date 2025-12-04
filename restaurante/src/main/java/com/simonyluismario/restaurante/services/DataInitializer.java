@@ -1,12 +1,17 @@
 package com.simonyluismario.restaurante.services;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import com.simonyluismario.restaurante.models.TableEntity;
 import com.simonyluismario.restaurante.repositories.TableRepository;
 @Component
-public class DataInitializer implements CommandLineRunner {
+public class DataInitializer  {
 
     private final TableRepository tableRepository;
 
@@ -14,18 +19,22 @@ public class DataInitializer implements CommandLineRunner {
         this.tableRepository = tableRepository;
     }
 
-    @Override
-    public void run(String... args) throws Exception {
-        if (tableRepository.count() == 0) {
+    @EventListener(ApplicationReadyEvent.class)
+    public void initializeTables() {
+        long count = tableRepository.count();
+        if (count == 0) {
+            List<TableEntity> mesas = new ArrayList<>();
+
             for (int i = 1; i <= 20; i++) {
                 TableEntity mesa = new TableEntity();
                 mesa.setName("Mesa " + i);
-               // mesa.setNumber(i);
-                mesa.setCapacity(6); // por ejemplo, 4 personas por mesa
+                mesa.setCapacity(6);
                 mesa.setOccupied(false);
-                tableRepository.save(mesa);
+                mesas.add(mesa);
             }
-            System.out.println("Mesas inicializadas correctamente.");
+
+            tableRepository.saveAll(mesas);
+            System.out.println("Mesas inicializadas correctamente después del arranque.");
         }
     }
 }
