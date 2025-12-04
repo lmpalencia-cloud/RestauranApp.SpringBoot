@@ -12,6 +12,8 @@ import org.springframework.data.repository.query.Param;
 public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
     @Query("SELECT o FROM OrderEntity o WHERE o.table.id = :tableId AND o.paid = false ORDER BY o.createdAt DESC")
     List<OrderEntity> findOpenOrdersByTableId(@Param("tableId") Long tableId);
+     // Último pedido no pagado de una mesa
+    Optional<OrderEntity> findTopByTableAndPaidFalseOrderByCreatedAtDesc(TableEntity table);
 
 }
 

@@ -1,4 +1,4 @@
-package main.java.com.simonyluismario.restaurante.services;
+package com.simonyluismario.restaurante.services;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
